@@ -19,3 +19,7 @@ logging:
     com.zhihui: debug
     org.springframework: warn
     org.mybatis: debug
+
+jwt:
+  secret: "UmFpbm1lbWVyeTIwMDA1MDcwOExZWHNhZGFzZGFkc2FkYXNjYXNkY2FzY2FzY3NjeGFkc2Fk"
+  expiration: 604800000  # 7天 = 7*24*3600*1000 毫秒

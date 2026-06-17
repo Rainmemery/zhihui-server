@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zhihui.mapper.UserMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="UserResultMap" type="com.zhihui.entity.User">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="email" property="email"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 插入用户 -->
+    <insert id="insert" parameterType="com.zhihui.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user (
+            username,
+            password,
+            email,
+            avatar_url,
+            status,
+            create_time,
+            update_time
+        ) VALUES (
+                     #{username},
+                     #{password},
+                     #{email},
+                     #{avatarUrl},
+                     #{status},
+                     #{createTime},
+                     #{updateTime}
+                 )
+    </insert>
+
+    <!-- 根据ID查询用户 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="UserResultMap">
+        SELECT
+            id,
+            username,
+            password,
+            email,
+            avatar_url,
+            status,
+            create_time,
+            update_time
+        FROM user
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据用户名查询用户 -->
+    <select id="selectByUsername" parameterType="java.lang.String" resultMap="UserResultMap">
+        SELECT
+            id,
+            username,
+            password,
+            email,
+            avatar_url,
+            status,
+            create_time,
+            update_time
+        FROM user
+        WHERE username = #{username}
+    </select>
+
+    <!-- 查询所有用户 -->
+    <select id="selectAll" resultMap="UserResultMap">
+        SELECT
+            id,
+            username,
+            password,
+            email,
+            avatar_url,
+            status,
+            create_time,
+            update_time
+        FROM user
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 更新用户信息 -->
+    <update id="update" parameterType="com.zhihui.entity.User">
+        UPDATE user
+        SET
+            username = #{username},
+            password = #{password},
+            email = #{email},
+            avatar_url = #{avatarUrl},
+            status = #{status},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除用户 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
+</mapper>
