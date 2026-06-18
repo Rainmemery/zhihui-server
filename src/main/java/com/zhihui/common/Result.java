@@ -1,5 +1,6 @@
 package com.zhihui.common;
 
+import com.zhihui.common.exception.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,10 +14,17 @@ public class Result<T> {
     private T data;
 
     public static <T> Result<T> success(T data) {
-        return new Result<>(200, "success", data);
-    }
-    public static <T> Result<T> error(int code, String message) {
-        return new Result<>(code, message, null);
+        Result<T> r = new Result<>();
+        r.setCode(ErrorCode.SUCCESS.getCode());
+        r.setMessage(ErrorCode.SUCCESS.getMessage());
+        r.setData(data);
+        return r;
     }
 
+    public static <T> Result<T> fail(Integer code, String msg) {
+        Result<T> r = new Result<>();
+        r.setCode(code);
+        r.setMessage(msg);
+        return r;
+    }
 }

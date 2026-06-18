@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <!-- 定义日志存储根目录 -->
+    <property name="LOG_PATH" value="${user.dir}/logs" />
+    <!-- 日志文件名前缀 -->
+    <property name="LOG_NAME" value="zhihui" />
+
+    <!-- 1. 控制台输出模板 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!-- 日志打印格式：时间 线程 日志级别 类名 日志内容 -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 2. 文件输出：按天滚动，保留30天 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 当前正在写入的日志文件 -->
+        <file>${LOG_PATH}/${LOG_NAME}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 每日归档文件名格式 zhihui.2026-06-18.log -->
+            <fileNamePattern>${LOG_PATH}/${LOG_NAME}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 日志文件保留30天 -->
+            <maxHistory>30</maxHistory>
+            <!-- 可选：限制日志总大小，防止磁盘占满 -->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 3. 自定义包日志级别分层控制 -->
+    <!-- Controller层：INFO级别 -->
+    <logger name="com.xxx.controller" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Service层：DEBUG级别 -->
+    <logger name="com.xxx.service" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- 框架/第三方包：仅输出WARN及以上，减少冗余日志 -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="io.jsonwebtoken" level="WARN"/>
+    <logger name="com.mysql" level="WARN"/>
+    <logger name="org.mybatis" level="WARN"/>
+
+    <!-- 4. 根日志：双通道输出（控制台+文件） -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

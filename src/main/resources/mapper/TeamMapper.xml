@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zhihui.mapper.TeamMapper">
+
+    <resultMap id="BaseResultMap" type="com.zhihui.entity.Team">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="TeamMemberVOMap" type="com.zhihui.vo.TeamMemberVO">
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="role" property="role"/>
+        <result column="join_time" property="joinTime"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO team (name, description, creator_id, status)
+        VALUES (#{name}, #{description}, #{creatorId}, #{status})
+    </insert>
+
+    <!-- 插入团队成员 -->
+    <insert id="insertMember" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO team_member (
+        team_id,
+        user_id,
+        role,
+        join_time
+        ) VALUES (
+        #{teamId},
+        #{userId},
+        #{role},
+        #{joinTime}
+        )
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM team WHERE id = #{id} AND status = 1
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT t.* FROM team t
+        INNER JOIN team_member tm ON t.id = tm.team_id
+        WHERE tm.user_id = #{userId} AND t.status = 1
+    </select>
+
+    <update id="update">
+        UPDATE team SET name = #{name}, description = #{description}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM team WHERE id = #{id}
+    </delete>
+
+    <select id="selectMembersByTeamId" resultMap="TeamMemberVOMap">
+        SELECT u.id AS user_id, u.username, u.avatar_url, tm.role, tm.join_time
+        FROM team_member tm
+        INNER JOIN user u ON tm.user_id = u.id
+        WHERE tm.team_id = #{teamId}
+        ORDER BY tm.join_time ASC
+    </select>
+
+    <delete id="deleteMembersByTeamId">
+        DELETE FROM team_member WHERE team_id = #{teamId}
+    </delete>
+
+    <delete id="deleteMember">
+        DELETE FROM team_member WHERE team_id = #{teamId} AND user_id = #{userId}
+    </delete>
+
+</mapper>
