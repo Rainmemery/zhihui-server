@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface TeamService {
     TeamVO createTeam(Team team);
-    TeamVO findTeam(Long id);
+    TeamVO getById(Long id);
     List<TeamVO> Teams();
     TeamVO disbandTeam(Long id);
     TeamVO joinTeam(Long id);

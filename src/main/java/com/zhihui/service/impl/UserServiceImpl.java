@@ -5,11 +5,15 @@ import com.zhihui.common.exception.BusinessException;
 import com.zhihui.dto.UserLoginDTO;
 import com.zhihui.dto.UserRegisterDTO;
 import com.zhihui.entity.User;
+import com.zhihui.mapper.TeamMapper;
 import com.zhihui.mapper.UserMapper;
 import com.zhihui.service.UserService;
 import com.zhihui.vo.LoginVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +28,8 @@ public class UserServiceImpl implements UserService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtils jwtUtils;
+    @Autowired
+    private TeamMapper teamMapper;
 
 
     @Transactional
@@ -39,6 +45,7 @@ public class UserServiceImpl implements UserService {
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setEmail(dto.getEmail());
+        user.setStatus(1);
         // 3. 入库
         userMapper.insert(user);
         user.setPassword(null); // 返回前脱敏
@@ -70,4 +77,40 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
+    @Override
+    @Cacheable(value="user", key="#id", unless="#result==null")
+    public User getById(Long id) {
+        User user = userMapper.selectById(id);
+        user.setPassword(null);
+        return user;
+    }
+
+    @Override
+    @CachePut(value="user", key="#user.id")
+    public User update(User user) {
+        userMapper.update(user);
+        user.setPassword(null);
+        return user;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value="user", key="#id")
+    public User delete(Long id) {
+        //逻辑删除
+        User user = userMapper.selectById(id);
+        user.setStatus(0);
+        userMapper.update(user);
+        user.setPassword(null);
+//        //删除用户需要删除teammember表中的记录
+//        userMapper.deleteById(id);//删除user表中的记录
+//        teamMapper.deleteMemberByUserId(id);//删除teammember表中的记录
+        return user;
+    }
+
+    @Override
+    @Cacheable(value="user", key="#username", unless="#result==null")
+    public User getByUsername(String username) {
+        return userMapper.selectByUsername(username);
+    }
 }

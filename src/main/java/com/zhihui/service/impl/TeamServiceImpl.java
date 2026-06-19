@@ -1,15 +1,19 @@
 package com.zhihui.service.impl;
 
 
+import com.zhihui.common.RedisUtils;
 import com.zhihui.common.UserContextHolder;
 import com.zhihui.entity.Team;
 import com.zhihui.entity.TeamMember;
 import com.zhihui.entity.User;
 import com.zhihui.mapper.TeamMapper;
+import com.zhihui.mapper.UserMapper;
 import com.zhihui.service.TeamService;
 import com.zhihui.vo.TeamVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +30,8 @@ public class TeamServiceImpl implements TeamService {
 
     @Autowired
     private TeamMapper teamMapper;
+    @Autowired
+    private RedisUtils redisUtils;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -59,9 +65,27 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
-    public TeamVO findTeam(Long id) {
-        Team team =teamMapper.selectById(id);
+    //@Cacheable(value = "team", key = "#id", unless = "#result == null")
+    public TeamVO getById(Long id) {
         TeamVO teamVO = new TeamVO();
+        String cacheKey = "team:" + id;
+        Team cached = redisUtils.get(cacheKey);
+        if(cached!=null){
+            if (cached.getId() == null) return null; // 空缓存标记
+            teamVO.setTeamId(cached.getId());
+            teamVO.setTeamName(cached.getName());
+            teamVO.setTeamDescription(cached.getDescription());
+            return teamVO;
+        }
+        log.info("查询团队，id={}，走数据库", id);
+        Team team = teamMapper.selectById(id);
+        if (team == null) {
+            redisUtils.set(cacheKey, new Team(), 60);
+            log.warn("团队不存在，id={}", id);
+            return null;
+        }else{
+            redisUtils.set(cacheKey, team, 1800);
+        }
         teamVO.setTeamId(team.getId());
         teamVO.setTeamName(team.getName());
         teamVO.setTeamDescription(team.getDescription());
@@ -84,6 +108,7 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "team", key = "#id")
     public TeamVO disbandTeam(Long id) {
         Team team=teamMapper.selectById(id);//查询团队详情
 

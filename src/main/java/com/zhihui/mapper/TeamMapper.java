@@ -18,7 +18,7 @@ public interface TeamMapper {
     int deleteById(Long id);
     List<TeamMemberVO> selectMembersByTeamId(Long teamId);
     int insertMember(TeamMember teamMember);
-
+    int deleteMemberByUserId(Long userId);
 
     @Select("SELECT * FROM team_member WHERE team_id = #{teamId} AND user_id = #{userId}")
     TeamMember selectMemberByTeamAndUser(@Param("teamId") Long teamId,

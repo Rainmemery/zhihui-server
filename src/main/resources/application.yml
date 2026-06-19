@@ -1,5 +1,11 @@
 server:
   port: 8080
+  tomcat:
+    threads:
+      max: 200
+      core: 100
+    accept-count: 100
+    connection-timeout: 5000
 
 spring:
   datasource:
@@ -7,19 +13,36 @@ spring:
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 10
+      idle-timeout: 300000
+      connection-timeout: 2000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 64
+          max-idle: 32
+          min-idle: 8
+          max-wait: 500ms
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 移除StdOutImpl控制台打印SQL
 
 logging:
   level:
-    com.zhihui: debug
+    com.zhihui: info
     org.springframework: warn
-    org.mybatis: debug
+    org.mybatis: info
 
 jwt:
   secret: "UmFpbm1lbWVyeTIwMDA1MDcwOExZWHNhZGFzZGFkc2FkYXNjYXNkY2FzY2FzY3NjeGFkc2Fk"
-  expiration: 604800000  # 7天 = 7*24*3600*1000 毫秒
+  expiration: 604800000

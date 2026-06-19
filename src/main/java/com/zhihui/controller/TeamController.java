@@ -39,7 +39,7 @@ public class TeamController {
 
     @GetMapping("/teams/{id}")
     public Result<TeamVO> teams(@PathVariable Long id){//根据teamId查询团队
-        TeamVO teamVO = teamService.findTeam(id);
+        TeamVO teamVO = teamService.getById(id);
         if(teamVO == null){
             return Result.fail(404,"查找失败");
         }

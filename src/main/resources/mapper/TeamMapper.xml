@@ -77,4 +77,8 @@
         DELETE FROM team_member WHERE team_id = #{teamId} AND user_id = #{userId}
     </delete>
 
+    <delete id="deleteMemberByUserId">
+        DELETE FROM team_member WHERE user_id = #{userId}
+    </delete>
+
 </mapper>
