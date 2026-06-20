@@ -15,6 +15,12 @@ CREATE TABLE meeting (
                          INDEX idx_creator_status (creator_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会议表';
 
+ALTER TABLE meeting ADD COLUMN version INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号';
+
+-- 验证
+DESC meeting;
+SELECT id, status, version FROM meeting LIMIT 5;
+
 -- 参会人表
 CREATE TABLE meeting_participant (
                                      id         BIGINT AUTO_INCREMENT PRIMARY KEY,

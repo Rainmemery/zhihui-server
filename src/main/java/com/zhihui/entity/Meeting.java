@@ -13,6 +13,7 @@ public class Meeting {
     private LocalDateTime endTime;
     private String status;
     private Long creatorId;
+    private Integer version;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

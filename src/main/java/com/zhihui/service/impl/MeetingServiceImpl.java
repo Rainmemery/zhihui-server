@@ -8,6 +8,7 @@ import com.zhihui.dto.MeetingQueryDTO;
 import com.zhihui.entity.Meeting;
 import com.zhihui.entity.MeetingParticipant;
 import com.zhihui.entity.User;
+import com.zhihui.enums.MeetingStatus;
 import com.zhihui.mapper.MeetingMapper;
 import com.zhihui.mapper.MeetingParticipantMapper;
 import com.zhihui.mapper.UserMapper;
@@ -18,11 +19,14 @@ import com.zhihui.vo.ParticipantVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service    // 标记为Spring业务层Bean
@@ -122,9 +126,9 @@ public class MeetingServiceImpl implements MeetingService {
         meeting.setEndTime(dto.getEndTime());
         meeting.setStatus("DRAFT");
         meeting.setCreatorId(UserContextHolder.getCurrentUserId());
-        meetingMapper.update(meeting);
+        meetingMapper.updateWithVersion(meeting);
         //前端不允许更改参会人，更改参会人通过别的接口
-        MeetingVO meetingVO = buildMeetingVO(meeting);
+        MeetingVO meetingVO = buildMeetingVO(meeting);//乐观锁更新
         return meetingVO;
     }
 
@@ -222,5 +226,123 @@ public class MeetingServiceImpl implements MeetingService {
             throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "不支持的排序方向");
         }
     }
-}
 
+    /**
+     * 状态流转通用方法（带乐观锁）
+     *
+     * @param id         会议 ID
+     * @param target     目标状态
+     * @param maxRetries 重试次数
+     */
+    private void transitionStatus(Long id, MeetingStatus target, int maxRetries) {
+        for (int i = 0; i < maxRetries; i++) {
+            Meeting meeting = meetingMapper.selectById(id);
+            if (meeting == null) {
+                throw new BusinessException(404, "会议不存在");
+            }
+
+            MeetingStatus currentStatus = MeetingStatus.fromCode(meeting.getStatus());
+
+            log.info("检验状态转换是否合法");
+            // 校验状态转换是否合法
+            currentStatus.validateTransition(target);
+            log.info("状态转换合法，开始更新");
+            // 乐观锁更新
+            int affectedRows = meetingMapper.updateStatusWithVersion(
+                    id, target.getCode(), meeting.getVersion());
+
+            if (affectedRows > 0) {
+                log.info("会议 {} 状态流转成功: {} → {}", id, currentStatus.getDesc(), target.getDesc());
+                return; // 成功
+            }
+
+            // 冲突：版本号不匹配，重试
+            log.warn("会议 {} 乐观锁冲突，重试 {}/{}", id, i + 1, maxRetries);
+            try {
+                Thread.sleep(ThreadLocalRandom.current().nextLong(10, 50));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        throw new BusinessException(400,
+                "会议已被他人修改，请刷新后重试");
+    }
+
+    @Override
+    public void schedule(Long id) {
+        transitionStatus(id, MeetingStatus.SCHEDULED, 3);
+    }
+
+    @Override
+    public void start(Long id) {
+        Meeting meeting = meetingMapper.selectById(id);
+        if (meeting == null) {
+            throw new BusinessException(404, "会议不存在");
+        }
+        if (meeting.getStartTime().isAfter(LocalDateTime.now())) {
+            throw new BusinessException(400, "会议未到开始时间，不能提前开始");
+        }
+        transitionStatus(id, MeetingStatus.IN_PROGRESS, 3);
+    }
+
+    @Override
+    public void end(Long id) {
+        transitionStatus(id, MeetingStatus.COMPLETED, 3);
+    }
+
+    @Override
+    public void cancel(Long id) {
+        transitionStatus(id, MeetingStatus.CANCELLED, 3);
+    }
+
+    @Override
+    @Transactional
+    public void addParticipants(Long meetingId, List<Long> userIds) {
+        Meeting meeting = meetingMapper.selectById(meetingId);
+        if (meeting == null) throw new BusinessException(404, "会议不存在");
+
+        MeetingStatus status = MeetingStatus.fromCode(meeting.getStatus());
+        if (status.isTerminal()) {
+            throw new BusinessException(400,
+                    "会议已结束，不可添加参会人");
+        }
+
+        // 使用 INSERT IGNORE 防止重复
+        for (Long userId : userIds) {
+            try {
+                MeetingParticipant p = new MeetingParticipant();
+                p.setMeetingId(meetingId);
+                p.setUserId(userId);
+                p.setRole("PARTICIPANT");
+                participantMapper.insert(p);
+            } catch (DuplicateKeyException ignored) {
+                // 已存在，跳过
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void removeParticipant(Long meetingId, Long userId) {
+        Meeting meeting = meetingMapper.selectById(meetingId);
+        if (meeting == null) throw new BusinessException(404, "会议不存在");
+
+        MeetingStatus status = MeetingStatus.fromCode(meeting.getStatus());
+        if (status.isTerminal()) {
+            throw new BusinessException(400,
+                    "会议已结束，不可移除参会人");
+        }
+
+        // HOST 不可被移除
+        MeetingParticipant participant = participantMapper.selectByMeetingAndUser(meetingId, userId);
+        if (participant == null) {
+            throw new BusinessException(404, "该用户不在参会人列表中");
+        }
+        if ("HOST".equals(participant.getRole())) {
+            throw new BusinessException(400, "HOST 不可被移除");
+        }
+
+        participantMapper.deleteByMeetingAndUser(meetingId, userId);
+    }
+}

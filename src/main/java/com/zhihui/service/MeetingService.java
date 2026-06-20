@@ -23,4 +23,11 @@ public interface MeetingService {
     MeetingVO updateMeeting(Long id, CreateMeetingRequest dto);
 
     void deleteMeeting(Long id);
+
+    void schedule(Long id);    // 排期  DRAFT → SCHEDULED
+    void start(Long id);       // 开始  SCHEDULED → IN_PROGRESS
+    void end(Long id);         // 结束  IN_PROGRESS → COMPLETED
+    void cancel(Long id);      // 取消  DRAFT/SCHEDULED → CANCELLED
+    void addParticipants(Long meetingId, List<Long> userIds);
+    void removeParticipant(Long meetingId, Long userId);
 }

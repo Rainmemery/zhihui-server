@@ -28,7 +28,13 @@ public interface MeetingMapper {
                                  @Param("offset") int offset,
                                  @Param("size") int size);
 
-    int update(Meeting meeting);
+    // 状态流转（只更新 status + version）
+    int updateStatusWithVersion(@Param("id") Long id,
+                                @Param("status") String status,
+                                @Param("version") Integer version);
+
+    // 全字段更新（带乐观锁）
+    int updateWithVersion(Meeting meeting);
 
     int deleteById(Long id);
 }

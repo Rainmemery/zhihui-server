@@ -12,6 +12,7 @@
         <result column="end_time" property="endTime"/>
         <result column="status" property="status"/>
         <result column="creator_id" property="creatorId"/>
+        <result column="version" property="version"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
@@ -99,14 +100,28 @@
         LIMIT #{offset}, #{size}
     </select>
 
-    <update id="update">
+    <!-- 带乐观锁的更新 -->
+    <update id="updateStatusWithVersion">
+        UPDATE meeting
+        SET status = #{status},
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id}
+          AND version = #{version}
+    </update>
+
+    <!-- 带乐观锁的全字段更新 -->
+    <update id="updateWithVersion">
         UPDATE meeting
         SET title = #{title},
-        description = #{description},
-        start_time = #{startTime},
-        end_time = #{endTime},
-        status = #{status}
+            description = #{description},
+            start_time = #{startTime},
+            end_time = #{endTime},
+            status = #{status},
+            version = version + 1,
+            update_time = NOW()
         WHERE id = #{id}
+          AND version = #{version}
     </update>
 
     <delete id="deleteById">

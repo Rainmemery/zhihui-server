@@ -8,6 +8,7 @@ import com.zhihui.service.MeetingService;
 import com.zhihui.vo.MeetingVO;
 import com.zhihui.vo.PageVO;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -68,7 +69,7 @@ public class MeetingController {
         return Result.success(meetingService.listMyJoined(page, size));
     }
 
-    /** 更新会议（乐观锁版本实现见 Day09） */
+    /** 更新会议（已实现乐观锁更新） */
     @PutMapping("/{id}")
     public Result<MeetingVO> update(@PathVariable Long id,
                                     @Valid @RequestBody CreateMeetingRequest dto) {
@@ -79,6 +80,50 @@ public class MeetingController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         meetingService.deleteMeeting(id);
+        return Result.success(null);
+    }
+
+    /** 排期会议（DRAFT → SCHEDULED） */
+    @PutMapping("/{id}/schedule")
+    public Result<Void> schedule(@PathVariable Long id) {
+        meetingService.schedule(id);
+        return Result.success(null);
+    }
+
+    /** 开始会议（SCHEDULED → IN_PROGRESS） */
+    @PutMapping("/{id}/start")
+    public Result<Void> start(@PathVariable Long id) {
+        meetingService.start(id);
+        return Result.success(null);
+    }
+
+    /** 结束会议（IN_PROGRESS → COMPLETED） */
+    @PutMapping("/{id}/end")
+    public Result<Void> end(@PathVariable Long id) {
+        meetingService.end(id);
+        return Result.success(null);
+    }
+
+    /** 取消会议（DRAFT / SCHEDULED → CANCELLED） */
+    @PutMapping("/{id}/cancel")
+    public Result<Void> cancel(@PathVariable Long id) {
+        meetingService.cancel(id);
+        return Result.success(null);
+    }
+
+    /** 添加参会人 */
+    @PostMapping("/{id}/participants")
+    public Result<Void> addParticipants(@PathVariable Long id,
+                                        @RequestBody @NotEmpty List<Long> userIds) {
+        meetingService.addParticipants(id, userIds);
+        return Result.success(null);
+    }
+
+    /** 移除参会人 */
+    @DeleteMapping("/{id}/participants/{userId}")
+    public Result<Void> removeParticipant(@PathVariable Long id,
+                                          @PathVariable Long userId) {
+        meetingService.removeParticipant(id, userId);
         return Result.success(null);
     }
 }

@@ -1,7 +1,9 @@
 package com.zhihui.interceptor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zhihui.common.JwtUtils;
 import com.zhihui.common.RedisUtils;
+import com.zhihui.common.Result;
 import com.zhihui.common.UserContextHolder;
 import com.zhihui.entity.User;
 import com.zhihui.mapper.UserMapper;
@@ -21,6 +23,8 @@ public class LoginInterceptor implements HandlerInterceptor {
     private UserMapper userMapper;
     @Autowired
     private RedisUtils redisUtils;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private static final String USER_CACHE_PREFIX = "user:info:";
     private static final long USER_CACHE_TTL = 30; // 30分钟
@@ -31,14 +35,16 @@ public class LoginInterceptor implements HandlerInterceptor {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(401);
-            response.getWriter().write("{\"code\":401,\"message\":\"未登录\"}");
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(objectMapper.writeValueAsString(Result.fail(401, "未登录")));
             return false;
         }
         String token = authHeader.substring(7);
 
         if (!jwtUtils.validateToken(token)) {
             response.setStatus(401);
-            response.getWriter().write("{\"code\":401,\"message\":\"token无效或已过期\"}");
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(objectMapper.writeValueAsString(Result.fail(401, "token无效或已过期")));
             return false;
         }
 

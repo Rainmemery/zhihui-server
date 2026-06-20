@@ -1,6 +1,7 @@
 package com.zhihui.common.exception;
 
 import com.zhihui.common.Result;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -17,8 +18,9 @@ public class GlobalExceptionHandler {
 
     // 1. 自定义业务异常
     @ExceptionHandler(BusinessException.class)
-    public Result<?> handleBusinessException(BusinessException e) {
+    public Result<?> handleBusinessException(BusinessException e, HttpServletResponse response) {
         log.error("【业务异常】code:{}, msg:{}", e.getCode(), e.getMessage(), e);
+        response.setStatus(e.getCode());
         return Result.fail(e.getCode(), e.getMessage());
     }
 
