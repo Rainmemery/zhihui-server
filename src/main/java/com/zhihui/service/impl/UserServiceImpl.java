@@ -28,8 +28,6 @@ public class UserServiceImpl implements UserService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtils jwtUtils;
-    @Autowired
-    private TeamMapper teamMapper;
 
 
     @Transactional
